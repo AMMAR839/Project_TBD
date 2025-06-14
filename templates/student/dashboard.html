@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="student-dashboard">
+    <h1>Dashboard Mahasiswa</h1>
+    <h2>Selamat datang, {{ student.name }}</h2>
+    
+    <div class="info-card">
+        <p>IPK Anda: {{ student.gpa }}</p>
+        <p>Maksimal SKS yang dapat diambil: {{ max_credits }}</p>
+        <p>Total SKS yang sudah diambil: {{ current_credits }}</p>
+    </div>
+
+    <div class="dashboard-section">
+        <h3>Mata Kuliah Yang Tersedia</h3>
+        <div class="available-courses">
+            {% for class in available_classes %}
+            <div class="course-card">
+                <h4>{{ class.course.name }} ({{ class.course.code }})</h4>
+                <p>SKS: {{ class.course.credits }}</p>
+                <p>Dosen: {{ class.teacher.name }}</p>
+                <p>Semester: {{ class.semester }}</p>
+                {% if class.course.credits + current_credits <= max_credits %}
+                <form method="POST" action="{{ url_for('enroll_class', class_id=class.id) }}">
+                    <button type="submit">Ambil Mata Kuliah</button>
+                </form>
+                {% else %}
+                <p class="warning">Melebihi batas SKS</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="dashboard-section">
+        <h3>Mata Kuliah Yang Diambil</h3>
+        <div class="enrolled-courses">
+            {% for enrollment in enrollments %}
+            <div class="course-card">
+                <h4>{{ enrollment.class.course.name }} ({{ enrollment.class.course.code }})</h4>
+                <p>SKS: {{ enrollment.class.course.credits }}</p>
+                <p>Dosen: {{ enrollment.class.teacher.name }}</p>
+                <p>Semester: {{ enrollment.class.semester }}</p>
+                <p>Nilai: {{ enrollment.grade if enrollment.grade else 'Belum ada nilai' }}</p>
+                <form method="POST" action="{{ url_for('drop_class', enrollment_id=enrollment.id) }}">
+                    <button type="submit" class="danger">Batalkan Mata Kuliah</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

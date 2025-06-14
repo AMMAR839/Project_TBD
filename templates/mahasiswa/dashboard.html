@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mahasiswa_dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="mahasiswa-dashboard">
+    <div class="dashboard-header">
+        <h1>Dashboard Mahasiswa</h1>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Informasi Mahasiswa -->
+        <div class="info-card">
+            <div class="card-header">
+                <h2>Informasi Mahasiswa</h2>
+            </div>
+            <div class="card-body">
+                <div class="student-info">
+                    <div class="info-item">
+                        <label>Nama:</label>
+                        <span>{{ mahasiswa.nama }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>NIM:</label>
+                        <span>{{ mahasiswa.nim }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Program Studi:</label>
+                        <span>{{ mahasiswa.program_studi }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Semester:</label>
+                        <span>{{ mahasiswa.semester }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ringkasan Akademik -->
+        <div class="info-card">
+            <div class="card-header">
+                <h2>Ringkasan Akademik</h2>
+            </div>
+            <div class="card-body">
+                <div class="academic-summary">
+                    <div class="summary-item">
+                        <div class="summary-value">{{ "%.2f"|format(mahasiswa.ipk) }}</div>
+                        <div class="summary-label">IPK</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">{{ "%.2f"|format(ips_terakhir) }}</div>
+                        <div class="summary-label">IPS </div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">{{ max_sks }}</div>
+                        <div class="summary-label">Maks. SKS</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">{{ current_sks }}</div>
+                        <div class="summary-label">SKS Diambil</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Riwayat IPS -->
+        <div class="info-card">
+            <div class="card-header">
+                <h2>Riwayat IPS</h2>
+            </div>
+            <div class="card-body">
+                <div class="ips-history">
+                    <canvas id="ipsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mata Kuliah yang Tersedia -->
+        <div class="course-section available-courses">
+            <div class="section-header">
+                <h2>Mata Kuliah yang Tersedia</h2>
+                <div class="filter-controls">
+                    <input type="text" id="searchMatkul" placeholder="Cari mata kuliah...">
+                    <select id="filterHari">
+                        <option value="">Semua Hari</option>
+                        <option value="Senin">Senin</option>
+                        <option value="Selasa">Selasa</option>
+                        <option value="Rabu">Rabu</option>
+                        <option value="Kamis">Kamis</option>
+                        <option value="Jumat">Jumat</option>
+                    </select>
+                </div>
+            </div>
+            <div class="course-grid">
+                {% for kelas in available_kelas %}
+                <div class="course-card available" data-hari="{{ kelas.hari }}">
+                    <div class="course-header">
+                        <h3>{{ kelas.mata_kuliah.nama }}</h3>
+                        <span class="course-code">{{ kelas.mata_kuliah.kode }}</span>
+                    </div>
+                    <div class="course-info">
+                        <div class="info-row">
+                            <i class="fas fa-book"></i>
+                            <span>{{ kelas.mata_kuliah.sks }} SKS</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fas fa-user"></i>
+                            <span>{{ kelas.dosen.nama }}</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fas fa-clock"></i>
+                            <span>{{ kelas.hari }}, {{ kelas.waktu }}</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fas fa-door-open"></i>
+                            <span>{{ kelas.ruangan }}</span>
+                        </div>
+                    </div>
+                    <div class="course-action">
+                        {% if kelas.mata_kuliah.id in taken_mata_kuliah_ids %}
+                        <button class="btn-disabled" disabled>
+                            <i class="fas fa-check"></i> Matkul Telah Diambil
+                        </button>
+                        {% elif kelas.mata_kuliah.sks + current_sks <= max_sks %}
+                        <form method="POST" action="{{ url_for('ambil_kelas', kelas_id=kelas.id) }}" class="w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Ambil Mata Kuliah
+                            </button>
+                        </form>
+                        {% else %}
+                        <button class="btn-disabled" disabled>
+                            <i class="fas fa-exclamation-circle"></i> SKS Melebihi Batas
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Mata Kuliah yang Diambil -->
+        <div class="course-section enrolled-courses">
+            <div class="section-header">
+                <h2>Mata Kuliah yang Diambil</h2>
+                <div class="action-buttons">
+                    {% if has_unconfirmed %}
+                    <form method="POST" action="{{ url_for('confirm_enrollment') }}" style="display: inline;">
+                        <button type="submit" class="btn-success">
+                            <i class="fas fa-check"></i> Konfirmasi Pengambilan Mata Kuliah
+                        </button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('toggle_edit_mode') }}" style="display: inline;">
+                        <button type="submit" class="btn-warning">
+                            <i class="fas fa-edit"></i> {{ 'Selesai Edit' if edit_mode else 'Edit Mata Kuliah' }}
+                        </button>
+                    </form>
+                    <div class="filter-controls">
+                        <input type="text" id="searchMatkulDiambil" placeholder="Cari mata kuliah...">
+                        <select id="filterHariDiambil">
+                            <option value="">Semua Hari</option>
+                            <option value="Senin">Senin</option>
+                            <option value="Selasa">Selasa</option>
+                            <option value="Rabu">Rabu</option>
+                            <option value="Kamis">Kamis</option>
+                            <option value="Jumat">Jumat</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="course-grid">
+                {% for enrollment in mata_kuliah_diambil %}
+                <div class="course-card enrolled {% if not enrollment.is_confirmed %}unconfirmed{% endif %}" data-hari="{{ enrollment.kelas.hari }}">
+                    <div class="course-header">
+                        <h3>{{ enrollment.kelas.mata_kuliah.nama }}</h3>
+                        <span class="course-code">{{ enrollment.kelas.mata_kuliah.kode }}</span>
+                        {% if not enrollment.is_confirmed %}
+                        <span class="status-badge unconfirmed">Belum Dikonfirmasi</span>
+                        {% else %}
+                        <span class="status-badge confirmed">Sudah Dikonfirmasi</span>
+                        {% endif %}
+                    </div>
+                    <div class="course-info">
+                        <div class="info-row">
+                            <i class="fas fa-book"></i>
+                            <span>{{ enrollment.kelas.mata_kuliah.sks }} SKS</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fas fa-user"></i>
+                            <span>{{ enrollment.kelas.dosen.nama }}</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fas fa-clock"></i>
+                            <span>{{ enrollment.kelas.hari }}, {{ enrollment.kelas.waktu }}</span>
+                        </div>
+                        <div class="info-row">
+                            <i class="fas fa-door-open"></i>
+                            <span>{{ enrollment.kelas.ruangan }}</span>
+                        </div>
+                        <div class="info-row grade">
+                            <i class="fas fa-star"></i>
+                            <span>Nilai: {{ enrollment.nilai_huruf if enrollment.nilai_huruf else 'Belum ada nilai' }}</span>
+                        </div>
+                    </div>
+                    {% if (not enrollment.is_confirmed or edit_mode) and not enrollment.nilai_huruf %}
+                    <div class="course-action">
+                        <form method="POST" action="{{ url_for('batalkan_kelas', enrollment_id=enrollment.id) }}">
+                            <button type="submit" class="btn-danger">
+                                <i class="fas fa-times"></i> Batalkan
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="ips-data" type="application/json">{{ ips_history | tojson | safe }}</script>
+<script src="{{ url_for('static', filename='js/mahasiswa_dashboard.js') }}"></script>
+{% endblock %} 

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="teacher-dashboard">
+    <h1>Dashboard Dosen</h1>
+    <h2>Selamat datang, {{ teacher.name }}</h2>
+
+    <div class="dashboard-section">
+        <h3>Kelas Yang Diampu</h3>
+        {% for class in classes %}
+        <div class="class-card">
+            <h4>{{ class.course.name }} ({{ class.course.code }})</h4>
+            <p>SKS: {{ class.course.credits }}</p>
+            <p>Semester: {{ class.semester }}</p>
+            
+            <table class="student-table">
+                <thead>
+                    <tr>
+                        <th>NIM</th>
+                        <th>Nama Mahasiswa</th>
+                        <th>Nilai</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for enrollment in class.enrollments %}
+                    <tr>
+                        <td>{{ enrollment.student.user.username }}</td>
+                        <td>{{ enrollment.student.name }}</td>
+                        <td>
+                            <span id="grade-{{ enrollment.id }}">
+                                {{ enrollment.grade if enrollment.grade else '-' }}
+                            </span>
+                        </td>
+                        <td>
+                            <button onclick="updateGrade('{{ enrollment.id }}')">
+                                Update Nilai
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

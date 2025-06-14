@@ -1,0 +1,711 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <h1>Dashboard Admin</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="tab-container">
+        <div class="tab-header">
+            <button class="tab-button active" onclick="openTab('mataKuliahTab')">
+                <i class="fas fa-book"></i> Mata Kuliah
+            </button>
+            <button class="tab-button" onclick="openTab('dosenTab')">
+                <i class="fas fa-chalkboard-teacher"></i> Dosen
+            </button>
+            <button class="tab-button" onclick="openTab('kelasTab')">
+                <i class="fas fa-users"></i> Kelas
+            </button>
+            <button class="tab-button" onclick="openTab('mahasiswaTab')">
+                <i class="fas fa-user-graduate"></i> Mahasiswa
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content active" id="mataKuliahTab">
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Daftar Mata Kuliah</h2>
+                    <button class="btn-primary" onclick="showModal('modalMataKuliah')">
+                        <i class="fas fa-plus"></i> Tambah Mata Kuliah
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Kode</th>
+                                <th>Nama Mata Kuliah</th>
+                                <th>SKS</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mk in mata_kuliah %}
+                            <tr data-mk-id="{{ mk.id }}">
+                                <td>{{ mk.kode }}</td>
+                                <td>{{ mk.nama }}</td>
+                                <td>{{ mk.sks }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-warning btn-sm" onclick="editMataKuliah('{{ mk.id }}')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-danger btn-sm" onclick="deleteMataKuliah('{{ mk.id }}')" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="dosenTab">
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Daftar Dosen</h2>
+                    <button class="btn-primary" onclick="showModal('modalDosen')">
+                        <i class="fas fa-plus"></i> Tambah Dosen
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>NIP</th>
+                                <th>Nama Lengkap</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>No. Telepon</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in dosen %}
+                            <tr data-dosen-id="{{ d.id }}">
+                                <td>{{ d.nip }}</td>
+                                <td>{{ d.nama }}</td>
+                                <td>{{ d.user.username }}</td>
+                                <td>{{ d.email if d.email else '-' }}</td>
+                                <td>{{ d.telepon if d.telepon else '-' }}</td>
+                                <td>
+                                    <span class="status-badge {{ 'active' if d.status else 'inactive' }}">
+                                        {{ 'Aktif' if d.status else 'Tidak Aktif' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-info btn-sm" onclick="viewDosen('{{ d.id }}')" title="Lihat Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn-warning btn-sm" onclick="editDosen('{{ d.id }}')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-danger btn-sm" onclick="deleteDosen('{{ d.id }}')" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="kelasTab">
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Daftar Kelas</h2>
+                    <button class="btn-primary" onclick="showModal('modalKelas')">
+                        <i class="fas fa-plus"></i> Tambah Kelas
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Mata Kuliah</th>
+                                <th>Dosen</th>
+                                <th>Semester</th>
+                                <th>Jadwal</th>
+                                <th>Ruangan</th>
+                                <th>Jumlah Peserta</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for kelas in kelas_list %}
+                            <tr data-kelas-id="{{ kelas.id }}">
+                                <td>{{ kelas.mata_kuliah.kode }} - {{ kelas.mata_kuliah.nama }}</td>
+                                <td>{{ kelas.dosen.nama }}</td>
+                                <td>{{ kelas.semester }}</td>
+                                <td>{{ kelas.hari }}, {{ kelas.waktu }}</td>
+                                <td>{{ kelas.ruangan }}</td>
+                                <td>{{ kelas.peserta|length }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-info btn-sm" onclick="viewKelasDetail('{{ kelas.id }}')" title="Lihat Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn-warning btn-sm" onclick="editKelas('{{ kelas.id }}')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-danger btn-sm" onclick="deleteKelas('{{ kelas.id }}')" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="mahasiswaTab">
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2>Daftar Mahasiswa</h2>
+                    <button class="btn-primary" onclick="showModal('modalMahasiswa')">
+                        <i class="fas fa-plus"></i> Tambah Mahasiswa
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>NIM</th>
+                                <th>Nama Lengkap</th>
+                                <th>Program Studi</th>
+                                <th>Semester</th>
+                                <th>IPK</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in mahasiswa_list %}
+                            <tr data-mahasiswa-id="{{ m.id }}">
+                                <td>{{ m.nim }}</td>
+                                <td>{{ m.nama }}</td>
+                                <td>{{ m.program_studi }}</td>
+                                <td>{{ m.semester }}</td>
+                                <td>{{ "%.2f"|format(m.ipk) }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-warning btn-sm" onclick="editMahasiswa('{{ m.id }}')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-danger btn-sm" onclick="deleteMahasiswa('{{ m.id }}')" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Mata Kuliah -->
+<div id="modalMataKuliah" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Tambah Mata Kuliah</h2>
+            <span class="close" onclick="hideModal('modalMataKuliah')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form method="POST" action="{{ url_for('tambah_mata_kuliah') }}">
+                <div class="form-group">
+                    <label for="kode">Kode Mata Kuliah:</label>
+                    <input type="text" id="kode" name="kode" required>
+                </div>
+                <div class="form-group">
+                    <label for="nama">Nama Mata Kuliah:</label>
+                    <input type="text" id="nama" name="nama" required>
+                </div>
+                <div class="form-group">
+                    <label for="sks">Jumlah SKS:</label>
+                    <input type="number" id="sks" name="sks" min="1" max="6" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('modalMataKuliah')">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Dosen dengan Scrollable Content -->
+<div id="modalDosen" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Tambah Dosen</h2>
+            <span class="close" onclick="hideModal('modalDosen')">&times;</span>
+        </div>
+        <div class="modal-body scrollable">
+            <form method="POST" action="{{ url_for('tambah_dosen') }}" class="modal-form">
+                <div class="form-horizontal">
+                    <div class="form-group">
+                        <label for="nip">NIP:</label>
+                        <input type="text" id="nip" name="nip" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nama">Nama Lengkap:</label>
+                        <input type="text" id="nama" name="nama" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="telepon">No. Telepon:</label>
+                        <input type="tel" id="telepon" name="telepon">
+                    </div>
+                    <div class="form-group">
+                        <label for="alamat">Alamat:</label>
+                        <textarea id="alamat" name="alamat" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status:</label>
+                        <select id="status" name="status" class="status-select">
+                            <option value="1">Aktif</option>
+                            <option value="0">Tidak Aktif</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-footer">
+                    <div class="button-container">
+                        <button type="button" class="btn-secondary" onclick="hideModal('modalDosen')">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Kelas -->
+<div id="modalKelas" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Tambah Kelas</h2>
+            <span class="close" onclick="hideModal('modalKelas')">&times;</span>
+        </div>
+        <div class="modal-body scrollable">
+            <form method="POST" action="{{ url_for('tambah_kelas') }}">
+                <div class="form-vertical">
+                    <div class="form-group">
+                        <label for="mata_kuliah_id">Mata Kuliah:</label>
+                        <select id="mata_kuliah_id" name="mata_kuliah_id" required>
+                            {% for mk in mata_kuliah %}
+                            <option value="{{ mk.id }}">{{ mk.kode }} - {{ mk.nama }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dosen_id">Dosen Pengampu:</label>
+                        <select id="dosen_id" name="dosen_id" required>
+                            {% for d in dosen %}
+                            <option value="{{ d.id }}">{{ d.nama }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="semester">Semester:</label>
+                        <select id="semester" name="semester" required>
+                            <option value="2023/2024 Ganjil">2023/2024 Ganjil</option>
+                            <option value="2023/2024 Genap">2023/2024 Genap</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="hari">Hari:</label>
+                        <select id="hari" name="hari" required>
+                            <option value="Senin">Senin</option>
+                            <option value="Selasa">Selasa</option>
+                            <option value="Rabu">Rabu</option>
+                            <option value="Kamis">Kamis</option>
+                            <option value="Jumat">Jumat</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="waktu">Waktu:</label>
+                        <input type="text" id="waktu" name="waktu" placeholder="08:00-10:30" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ruangan">Ruangan:</label>
+                        <input type="text" id="ruangan" name="ruangan" placeholder="R101" required>
+                    </div>
+                </div>
+                <div class="form-footer">
+                    <div class="button-container">
+                        <button type="button" class="btn-secondary" onclick="hideModal('modalKelas')">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Mata Kuliah -->
+<div id="modalEditMataKuliah" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Mata Kuliah</h2>
+            <span class="close" onclick="hideModal('modalEditMataKuliah')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="formEditMataKuliah" method="POST">
+                <div class="form-vertical">
+                    <div class="form-group">
+                        <label for="edit_kode">Kode Mata Kuliah:</label>
+                        <input type="text" id="edit_kode" name="kode" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_nama">Nama Mata Kuliah:</label>
+                        <input type="text" id="edit_nama" name="nama" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_sks">Jumlah SKS:</label>
+                        <input type="number" id="edit_sks" name="sks" min="1" max="6" required>
+                    </div>
+                </div>
+                <div class="form-footer">
+                    <div class="button-container">
+                        <button type="button" class="btn-secondary" onclick="hideModal('modalEditMataKuliah')">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Dosen -->
+<div id="modalEditDosen" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Dosen</h2>
+            <span class="close" onclick="hideModal('modalEditDosen')">&times;</span>
+        </div>
+        <div class="modal-body scrollable">
+            <form id="formEditDosen" method="POST">
+                <div class="form-vertical">
+                    <div class="form-group">
+                        <label for="edit_nip">NIP:</label>
+                        <input type="text" id="edit_nip" name="nip" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_nama_dosen">Nama Lengkap:</label>
+                        <input type="text" id="edit_nama_dosen" name="nama" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_email">Email:</label>
+                        <input type="email" id="edit_email" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_telepon">No. Telepon:</label>
+                        <input type="tel" id="edit_telepon" name="telepon">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_alamat">Alamat:</label>
+                        <textarea id="edit_alamat" name="alamat" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_status">Status:</label>
+                        <select id="edit_status" name="status" class="status-select">
+                            <option value="1">Aktif</option>
+                            <option value="0">Tidak Aktif</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-footer">
+                    <div class="button-container">
+                        <button type="button" class="btn-secondary" onclick="hideModal('modalEditDosen')">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal View Detail Dosen -->
+<div id="modalViewDosen" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Detail Dosen</h2>
+            <span class="close" onclick="hideModal('modalViewDosen')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-horizontal">
+                <div class="form-group">
+                    <label class="detail-label">NIP</label>
+                    <div class="detail-value-container">
+                        <div class="detail-value" id="view_nip"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="detail-label">Nama Lengkap</label>
+                    <div class="detail-value-container">
+                        <div class="detail-value" id="view_nama"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="detail-label">Username</label>
+                    <div class="detail-value-container">
+                        <div class="detail-value" id="view_username"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="detail-label">Email</label>
+                    <div class="detail-value-container">
+                        <div class="detail-value" id="view_email"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="detail-label">No. Telepon</label>
+                    <div class="detail-value-container">
+                        <div class="detail-value" id="view_telepon"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="detail-label">Status</label>
+                    <div class="detail-value-container">
+                        <div class="detail-value">
+                            <span id="view_status" class="status-badge"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="detail-label">Alamat</label>
+                    <div class="detail-value-container">
+                        <div class="detail-value" id="view_alamat"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detail Kelas -->
+<div id="modalKelasDetail" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Detail Kelas</h2>
+            <span class="close" onclick="hideModal('modalKelasDetail')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="kelasDetailContent">
+                <div class="detail-section">
+                    <h3>Informasi Kelas</h3>
+                    <div id="kelasInfo"></div>
+                </div>
+                <div class="detail-section">
+                    <h3>Daftar Mahasiswa</h3>
+                    <div class="table-responsive">
+                        <table class="data-table" id="kelasStudentList">
+                            <thead>
+                                <tr>
+                                    <th>NIM</th>
+                                    <th>Nama</th>
+                                    <th>Status</th>
+                                    <th>Nilai</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Kelas -->
+<div id="modalEditKelas" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Kelas</h2>
+            <span class="close" onclick="hideModal('modalEditKelas')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="formEditKelas" method="POST">
+                <input type="hidden" id="edit_kelas_id" name="kelas_id">
+                <div class="form-vertical">
+                    <div class="form-group">
+                        <label for="edit_mata_kuliah_id">Mata Kuliah:</label>
+                        <select id="edit_mata_kuliah_id" name="mata_kuliah_id" required>
+                            {% for mk in mata_kuliah %}
+                            <option value="{{ mk.id }}">{{ mk.kode }} - {{ mk.nama }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_dosen_id">Dosen Pengampu:</label>
+                        <select id="edit_dosen_id" name="dosen_id" required>
+                            {% for d in dosen %}
+                            <option value="{{ d.id }}">{{ d.nama }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_semester">Semester:</label>
+                        <select id="edit_semester" name="semester" required>
+                            <option value="2023/2024 Ganjil">2023/2024 Ganjil</option>
+                            <option value="2023/2024 Genap">2023/2024 Genap</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_hari">Hari:</label>
+                        <select id="edit_hari" name="hari" required>
+                            <option value="Senin">Senin</option>
+                            <option value="Selasa">Selasa</option>
+                            <option value="Rabu">Rabu</option>
+                            <option value="Kamis">Kamis</option>
+                            <option value="Jumat">Jumat</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_waktu">Waktu:</label>
+                        <input type="text" id="edit_waktu" name="waktu" placeholder="08:00-10:30" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_ruangan">Ruangan:</label>
+                        <input type="text" id="edit_ruangan" name="ruangan" placeholder="R101" required>
+                    </div>
+                </div>
+                <div class="form-footer">
+                    <div class="button-container">
+                        <button type="button" class="btn-secondary" onclick="hideModal('modalEditKelas')">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Mahasiswa -->
+<div id="modalMahasiswa" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Tambah Mahasiswa</h2>
+            <span class="close" onclick="hideModal('modalMahasiswa')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form method="POST" action="{{ url_for('tambah_mahasiswa') }}">
+                <div class="form-vertical">
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nama">Nama Lengkap:</label>
+                        <input type="text" id="nama" name="nama" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nim">NIM:</label>
+                        <input type="text" id="nim" name="nim" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="program_studi">Program Studi:</label>
+                        <input type="text" id="program_studi" name="program_studi" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="semester">Semester:</label>
+                        <input type="number" id="semester" name="semester" min="1" max="14" required>
+                    </div>
+                </div>
+                <div class="form-footer">
+                    <div class="button-container">
+                        <button type="button" class="btn-secondary" onclick="hideModal('modalMahasiswa')">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Mahasiswa -->
+<div id="modalEditMahasiswa" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Data Mahasiswa</h2>
+            <span class="close" onclick="hideModal('modalEditMahasiswa')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="formEditMahasiswa" method="POST">
+                <div class="form-vertical">
+                    <div class="form-group">
+                        <label for="edit_nama">Nama Lengkap:</label>
+                        <input type="text" id="edit_nama" name="nama" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_program_studi">Program Studi:</label>
+                        <input type="text" id="edit_program_studi" name="program_studi" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_semester">Semester:</label>
+                        <input type="number" id="edit_semester" name="semester" min="1" max="14" required>
+                    </div>
+                </div>
+                <div class="form-footer">
+                    <div class="button-container">
+                        <button type="button" class="btn-secondary" onclick="hideModal('modalEditMahasiswa')">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_dashboard.js') }}"></script>
+{% endblock %} 

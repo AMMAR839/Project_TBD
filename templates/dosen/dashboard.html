@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dosen_dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dosen-dashboard">
+    <!-- Profile Section -->
+    <div class="profile-section">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {{ dosen.nama[:1] }}
+            </div>
+            <div class="profile-info">
+                <h1>{{ dosen.nama }}</h1>
+                <p class="subtitle">{{ dosen.nip }}</p>
+                <div class="profile-details">
+                    <div class="detail-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>{{ dosen.email }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-phone"></i>
+                        <span>{{ dosen.telepon }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ kelas_diampu|length }}</h3>
+                <p>Kelas Diampu</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ kelas_diampu|map(attribute='peserta')|map('length')|sum }}</h3>
+                <p>Total Mahasiswa</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <h3>{{ kelas_diampu|map(attribute='mata_kuliah.sks')|sum }}</h3>
+                <p>Total SKS</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Classes Section -->
+    <div class="classes-section">
+        <h2><i class="fas fa-books"></i> Kelas yang Diampu</h2>
+        {% for kelas in kelas_diampu %}
+        <div class="class-card">
+            <div class="class-header">
+                <div class="class-title">
+                    <h3>{{ kelas.mata_kuliah.nama }}</h3>
+                    <span class="class-code">{{ kelas.mata_kuliah.kode }}</span>
+                </div>
+                <div class="class-meta">
+                    <span class="meta-item"><i class="fas fa-graduation-cap"></i> {{ kelas.mata_kuliah.sks }} SKS</span>
+                    <span class="meta-item"><i class="fas fa-calendar"></i> {{ kelas.semester }}</span>
+                    <span class="meta-item"><i class="fas fa-clock"></i> {{ kelas.hari }}, {{ kelas.waktu }}</span>
+                    <span class="meta-item"><i class="fas fa-door-open"></i> {{ kelas.ruangan }}</span>
+                </div>
+            </div>
+            
+            <div class="class-content">
+                <div class="table-responsive">
+                    <table class="student-table">
+                        <thead>
+                            <tr>
+                                <th>NIM</th>
+                                <th>Nama Mahasiswa</th>
+                                <th>Nilai Angka</th>
+                                <th>Nilai Huruf</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for enrollment in kelas.peserta %}
+                            <tr>
+                                <td>{{ enrollment.mahasiswa.nim }}</td>
+                                <td>{{ enrollment.mahasiswa.nama }}</td>
+                                <td id="nilai-angka-{{ enrollment.id }}">
+                                    {{ enrollment.nilai_angka if enrollment.nilai_angka else '-' }}
+                                </td>
+                                <td id="nilai-huruf-{{ enrollment.id }}">
+                                    {{ enrollment.nilai_huruf if enrollment.nilai_huruf else '-' }}
+                                </td>
+                                <td>
+                                    <span class="status-badge {% if enrollment.is_confirmed %}confirmed{% else %}pending{% endif %}">
+                                        {{ 'Terkonfirmasi' if enrollment.is_confirmed else 'Menunggu Konfirmasi' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button onclick="inputNilai('{{ enrollment.id }}')" 
+                                            class="btn-action"
+                                            {% if not enrollment.is_confirmed %}disabled{% endif %}
+                                            title="{% if not enrollment.is_confirmed %}Mahasiswa belum mengkonfirmasi mata kuliah{% endif %}">
+                                        <i class="fas fa-edit"></i>
+                                        {{ 'Update Nilai' if enrollment.nilai_angka else 'Beri Nilai' }}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Input Nilai -->
+<div id="modalInputNilai" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Input Nilai</h2>
+            <span class="close">&times;</span>
+        </div>
+        <form id="formNilai" onsubmit="submitNilai(event)">
+            <input type="hidden" id="enrollment_id" name="enrollment_id">
+            <div class="form-group">
+                <label for="nilai_angka">Nilai Angka (0-100):</label>
+                <input type="number" id="nilai_angka" name="nilai_angka" min="0" max="100" required>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="closeModal()">Batal</button>
+                <button type="submit" class="btn-primary">Simpan Nilai</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dosen_dashboard.js') }}"></script>
+{% endblock %} 
