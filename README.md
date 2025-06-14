@@ -58,7 +58,7 @@ Batas pengambilan SKS berdasarkan IPK:
 ### 1. Persiapan Awal
 #### a. Clone Repository
 ```bash
-git clone https://github.com/AMMAR839/Tugas_TBD.git
+git clone https://github.com/AMMAR839/Project_TBD.git
 cd Project_TBD
 ```
 
