@@ -59,7 +59,7 @@ Batas pengambilan SKS berdasarkan IPK:
 #### a. Clone Repository
 ```bash
 git clone https://github.com/AMMAR839/Tugas_TBD.git
-cd Tugas_TBD
+cd Project_TBD
 ```
 
 #### b. Buat virtual environment
