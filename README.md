@@ -92,7 +92,7 @@ Buka browser dan akses `http://127.0.0.1:5000`
 
 
 
-## Reset dan Isi Database dengan Data (Opsional)
+## Reset dan Isi Database (Opsional)
 - Mereset Database
 
 ```bash
